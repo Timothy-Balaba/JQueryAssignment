@@ -1,39 +1,177 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="./style.css">
-  <title>jQuery</title>
+    <meta charset="utf-8">
+    <title>Task list</title>
+    <link rel="stylesheet" type="text/css" href="tasks.css" media="screen" />
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js" type="text/javascript"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery-templates@1.0.0/jquery.tmpl.min.js"></script>
 </head>
+
 <body>
-  <main id="container">
-  </main>
-  <form class="form">
-    <div>
-      <label for="width">Width</label>
-      <input type="text" name="width" id="width" placeholder="default 100">
-    </div>
-    <div>
-      <label for="growthAmount">Growth amount </label>
-      <input type="number" name="growth-amount" id="growthAmount"  placeholder="default 12">
-    </div>
-    <div>
-      <label for="interval">Interval</label>
-      <input type="number" name="interval" id="interval"  placeholder="default 250">
-    </div>
-    <div>
-      <label for="circlesValue">Circles</label>
-      <input type="number" name="circles" id="circlesValue"  placeholder="default 1">
-    </div>
-    <button type="button" id="start" class="start">start</button>
-  </form>
-<script
-  src="https://code.jquery.com/jquery-3.6.0.min.js"
-  integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4="
-  crossorigin="anonymous">
-</script>
-<script src="./index.js"></script>
+    <header>
+        <span>Task list</span>
+    </header>
+    <main>
+        <section id="taskCreation" class="not">
+            <form>
+                <div>
+                    <label>Task</label>
+                    <input type="text" required="required" name="task" class="large"
+                        placeholder="e.g Breakfast at Tiffanys" />
+                </div>
+                <div>
+                    <label>Required by</label>
+                    <input type="date" required="required" name="requiredBy" />
+                </div>
+                <div>
+                    <label>Category</label>
+                    <select name="category">
+                        <option value="Personal">Personal</option>
+                        <option value="Work">Work</option>
+                    </select>
+                </div>
+                <nav>
+                    <a href="#" id="saveTask">Save task</a>
+                    <a href="#" id="clearForm">Clear task</a>
+                </nav>
+            </form>
+        </section>
+        <section>
+            <table id="tblTasks">
+                <colgroup>
+                    <col width="40%">
+                    <col width="15%">
+                    <col width="15%">
+                    <col width="30%">
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Due</th>
+                        <th>Category</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+            <nav>
+                <a href="#" id="btnAddTask">Add task</a>
+                <a href="#" id="clearAllTasks">Clear all tasks</a>
+            </nav>
+        </section>
+    </main>
+    <footer>You have <span id="taskCount">0</span> tasks</footer>
 </body>
+<script>
+    $(document).ready(function () {
+        $('[required="required"]').prev('label').append('<span>*</span>').children('span').addClass('required');
+        $('tbody tr:even').addClass('even');
+
+        function updateTaskCount() {
+            var taskCount = $('#tblTasks tbody tr').length;
+            $('#taskCount').text(taskCount);
+        }
+
+        function validateForm() {
+            var task = $('input[name="task"]').val();
+            var requiredBy = $('input[name="requiredBy"]').val();
+
+            if (task === "" || requiredBy === "") {
+                alert("Task and Date are required.");
+                return false;
+            }
+
+            var today = new Date().toISOString().split('T')[0];
+            if (requiredBy < today) {
+                alert("Date must be today or in the future.");
+                return false;
+            }
+
+            return true;
+        }
+
+        $('#btnAddTask').click(function (evt) {
+            evt.preventDefault();
+            $('#taskCreation').removeClass('not');
+        });
+
+        $('#clearForm').click(function (evt) {
+            evt.preventDefault();
+            $('form')[0].reset();
+        });
+
+        $('tbody').on('click', 'tr', function (evt) {
+            $(evt.target).closest('td').siblings().andSelf().toggleClass('taskCompleted');
+        });
+
+        $('#tblTasks tbody').on('click', '.deleteRow', function (evt) {
+            evt.preventDefault();
+            $(evt.target).parents('tr').remove();
+            updateTaskCount();
+        });
+
+        $('#tblTasks tbody').on('click', '.completeRow', function (evt) {
+            evt.preventDefault();
+            $(evt.target).closest('td').siblings().andSelf().toggleClass('taskCompleted');
+        });
+
+        $('#saveTask').click(function (evt) {
+            evt.preventDefault();
+            if (validateForm()) {
+                var task = $('form').toObject();
+                $('#taskRow').tmpl(task).appendTo($('#tblTasks tbody'));
+                updateTaskCount();
+                $('form')[0].reset();
+            }
+        });
+
+        $('#clearAllTasks').click(function (evt) {
+            evt.preventDefault();
+            $('#tblTasks tbody').empty();
+            updateTaskCount();
+        });
+
+        updateTaskCount();
+    });
+
+    (function ($) {
+        $.fn.extend({
+            toObject: function () {
+                var result = {}
+                $.each(this.serializeArray(), function (i, v) {
+                    result[v.name] = v.value;
+                });
+                return result;
+            },
+            fromObject: function (obj) {
+                $.each(this.find(':input'), function (i, v) {
+                    var name = $(v).attr('name');
+                    if (obj[name]) {
+                        $(v).val(obj[name]);
+                    } else {
+                        $(v).val('');
+                    }
+                });
+            }
+        });
+    })(jQuery);
+</script>
+<script id="taskRow" type="text/x-jQuery-tmpl">
+<tr>
+<td>${task}</td>
+<td><time datetime="${requiredBy}"> ${requiredBy}</time></td>
+<td>${category}</td>
+<td>
+<nav>
+<a href="#">Edit</a>
+<a href="#" class"completeRow">Complete</a>
+<a href="#" class="deleteRow">Delete</a>
+</nav>
+</td>
+</tr>
+</script>
+
 </html>
